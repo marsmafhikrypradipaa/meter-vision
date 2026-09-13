@@ -48,38 +48,42 @@ def test_generate_text_report_uses_metadata_per_photo() -> None:
     report = generate_text_report(metadata=metadata, entries=entries)
 
     expected = (
-        "Tanggal: 11 Agustus 2026\n"
-        "Waktu: 10:30:15\n"
-        "Nama: Budi\n"
+        "LAPORAN PEMBACAAN METER\n"
+        "\n"
+        "Tanggal : 11 Agustus 2026\n"
+        "Waktu   : 10:30:15\n"
+        "Nama    : Budi\n"
         "\n"
         "Foto 1\n"
-        "File: foto1.jpg\n"
-        "Ruangan: Room A\n"
-        "Jenis LCD: V\n"
-        "V12: 220.50 V\n"
-        "V23: - V\n"
-        "V31: - V\n"
-        "Confidence: 94.00%\n"
+        "Ruangan   : Room A\n"
+        "Jenis LCD : V\n"
+        "\n"
+        "Hasil Pembacaan:\n"
+        "V1 : 220.50 V\n"
+        "V2 : - V\n"
+        "V3 : - V\n"
         "\n"
         "Foto 2\n"
-        "File: foto2.jpg\n"
-        "Ruangan: Room B\n"
-        "Jenis LCD: I\n"
-        "I12: 12.40 A\n"
-        "I23: - A\n"
-        "I31: - A\n"
-        "Confidence: 91.00%\n"
+        "Ruangan   : Room B\n"
+        "Jenis LCD : I\n"
+        "\n"
+        "Hasil Pembacaan:\n"
+        "I1 : 12.40 A\n"
+        "I2 : - A\n"
+        "I3 : - A\n"
         "\n"
         "Foto 3\n"
-        "File: foto3.jpg\n"
-        "Ruangan: Room C\n"
-        "Jenis LCD: U\n"
-        "U12: 221.10 V\n"
-        "U23: - V\n"
-        "U31: - V\n"
-        "Confidence: 96.00%"
+        "Ruangan   : Room C\n"
+        "Jenis LCD : U\n"
+        "\n"
+        "Hasil Pembacaan:\n"
+        "U12 : 221.10 V\n"
+        "U23 : - V\n"
+        "U31 : - V"
     )
     assert report == expected
+    assert "File:" not in report
+    assert "Confidence OCR" not in report
 
 
 def test_generate_text_report_rejects_invalid_lcd_type() -> None:
@@ -120,10 +124,10 @@ def test_generate_text_report_uses_ampere_unit_for_i_lcd_type() -> None:
 
     report = generate_text_report(metadata=metadata, entries=[entry])
 
-    assert "I12: 10.25 A" in report
-    assert "I23: 10.11 A" in report
-    assert "I31: 9.98 A" in report
-    assert "I12: 10.25 V" not in report
+    assert "I1 : 10.25 A" in report
+    assert "I2 : 10.11 A" in report
+    assert "I3 : 9.98 A" in report
+    assert "I1 : 10.25 V" not in report
 
 
 def _ocr_result(values: list[str], confidence: float) -> OCRResult:

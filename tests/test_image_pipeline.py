@@ -5,10 +5,15 @@ import numpy as np
 import pytest
 
 from app.cropper import (
+    CROP_CANCEL,
+    CROP_CONFIRM,
+    CROP_RECROP,
     CropRectangle,
     _build_display_image,
+    _crop_confirmation_from_key,
     _to_original_rectangle,
     crop_image,
+    select_crop_manually,
 )
 from app.denoise import apply_median_filter
 from app.grayscale import to_grayscale
@@ -72,6 +77,35 @@ def test_display_selection_is_mapped_back_to_original_coordinates() -> None:
     assert rectangle.y == 100
     assert rectangle.width == 400
     assert rectangle.height == 200
+
+
+def test_crop_preview_key_mapping() -> None:
+    assert _crop_confirmation_from_key(13) == CROP_CONFIRM
+    assert _crop_confirmation_from_key(32) == CROP_CONFIRM
+    assert _crop_confirmation_from_key(ord("r")) == CROP_RECROP
+    assert _crop_confirmation_from_key(ord("R")) == CROP_RECROP
+    assert _crop_confirmation_from_key(ord("c")) == CROP_CANCEL
+    assert _crop_confirmation_from_key(27) == CROP_CANCEL
+    assert _crop_confirmation_from_key(ord("x")) is None
+
+
+def test_manual_crop_can_be_repeated_before_confirm(monkeypatch) -> None:
+    image = np.zeros((50, 80, 3), dtype=np.uint8)
+    selections = iter([(0, 0, 10, 10), (10, 5, 30, 20)])
+    actions = iter([CROP_RECROP, CROP_CONFIRM])
+
+    monkeypatch.setattr("app.cropper._get_screen_resolution", lambda: (800, 600))
+    monkeypatch.setattr(cv2, "selectROI", lambda *_args, **_kwargs: next(selections))
+    monkeypatch.setattr(cv2, "destroyWindow", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        "app.cropper._confirm_crop_selection",
+        lambda **_kwargs: next(actions),
+    )
+
+    cropped_image = select_crop_manually("crop test", image)
+
+    assert cropped_image is not None
+    assert cropped_image.shape == (20, 30, 3)
 
 
 def test_grayscale_returns_valid_image() -> None:

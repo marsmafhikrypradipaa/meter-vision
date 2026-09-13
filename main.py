@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from tkinter import Button, Text, Tk, filedialog, messagebox, simpledialog
+from tkinter import Button, Frame, Text, Tk, filedialog, messagebox, simpledialog
 from typing import Protocol
 
 from app.config import DEFAULT_PREPROCESSING_CONFIG
@@ -9,6 +9,7 @@ from app.image_processor import process_single_image, with_manual_correction
 from app.models import PhotoProcessingResult, PhotoStatus
 from app.ocr_engine import PaddleOCREngine
 from app.parser import parse_voltage_values
+from app.report.export_report import export_report_to_csv, export_report_to_excel
 from app.report.text_report import (
     BatchReportMetadata,
     PhotoReportEntry,
@@ -66,7 +67,8 @@ def main() -> None:
         )
 
         result = verify_or_correct_result(index, result)
-        entries.append(PhotoReportEntry(metadata=photo_metadata, result=result))
+        entries.append(PhotoReportEntry(
+            metadata=photo_metadata, result=result))
 
     show_final_report(batch_metadata, entries)
 
@@ -211,12 +213,29 @@ def show_report_window(report_text: str) -> None:
     report_box.pack(fill="both", expand=True, padx=12, pady=(12, 8))
     report_box.insert("1.0", report_text)
 
+    button_frame = Frame(root)
+    button_frame.pack(pady=(0, 12))
+
     copy_button = Button(
-        root,
+        button_frame,
         text="[ Salin Hasil ]",
         command=lambda: copy_report_to_clipboard(root, report_box),
     )
-    copy_button.pack(pady=(0, 12))
+    copy_button.pack(side="left", padx=4)
+
+    csv_button = Button(
+        button_frame,
+        text="[ Export CSV ]",
+        command=lambda: export_current_report_to_csv(root, report_box),
+    )
+    csv_button.pack(side="left", padx=4)
+
+    excel_button = Button(
+        button_frame,
+        text="[ Export Excel ]",
+        command=lambda: export_current_report_to_excel(root, report_box),
+    )
+    excel_button.pack(side="left", padx=4)
 
     root.mainloop()
 
@@ -228,6 +247,49 @@ def copy_report_to_clipboard(root: Tk, report_box: TextContentWidget) -> None:
     root.update()
     messagebox.showinfo(
         "Salin Hasil", "Report berhasil disalin ke clipboard.", parent=root)
+
+
+def export_current_report_to_csv(root: Tk, report_box: TextContentWidget) -> None:
+    output_path = filedialog.asksaveasfilename(
+        parent=root,
+        title="Simpan Report CSV",
+        defaultextension=".csv",
+        filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+    )
+    if not output_path:
+        return
+
+    try:
+        export_report_to_csv(get_current_report_text(report_box), output_path)
+    except Exception as error:
+        messagebox.showerror(
+            "Export CSV", f"Gagal menyimpan CSV:\n{error}", parent=root)
+        return
+
+    messagebox.showinfo(
+        "Export CSV", "Report CSV berhasil disimpan.", parent=root)
+
+
+def export_current_report_to_excel(root: Tk, report_box: TextContentWidget) -> None:
+    output_path = filedialog.asksaveasfilename(
+        parent=root,
+        title="Simpan Report Excel",
+        defaultextension=".xlsx",
+        filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+    )
+    if not output_path:
+        return
+
+    try:
+        export_report_to_excel(
+            get_current_report_text(report_box), output_path)
+    except Exception as error:
+        messagebox.showerror(
+            "Export Excel", f"Gagal menyimpan Excel:\n{error}", parent=root)
+        return
+
+    messagebox.showinfo(
+        "Export Excel", "Report Excel berhasil disimpan.", parent=root)
 
 
 def get_current_report_text(report_box: TextContentWidget) -> str:
